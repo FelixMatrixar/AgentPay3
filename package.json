@@ -1,0 +1,44 @@
+{
+  "name": "agentpay-whatsapp-integration",
+  "version": "1.0.0",
+  "description": "Multi-user WhatsApp integration using Baileys for AgentPay3",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "api",
+    "integration",
+    "multi-user"
+  ],
+  "author": "Felix",
+  "license": "MIT",
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@types/qrcode": "^1.5.5",
+    "@whiskeysockets/baileys": "^6.7.20",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "node-cache": "^5.1.2",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.8.6",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}
