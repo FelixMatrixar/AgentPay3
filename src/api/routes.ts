@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { WhatsAppManager } from '../services/WhatsAppManager'
 import { SessionManager } from '../services/SessionManager'
 import { logger } from '../utils/logger'
+import { QRCodeGenerator } from '../utils/qrCodeGenerator'
 
 export function createRoutes(whatsappManager: WhatsAppManager, sessionManager: SessionManager): Router {
   const router = Router()
@@ -184,6 +185,97 @@ export function createRoutes(whatsappManager: WhatsAppManager, sessionManager: S
     } catch (error) {
       logger.error({ error }, 'Failed to get QR code')
       res.status(500).json({ error: 'Failed to get QR code' })
+    }
+  })
+
+  // Get QR code as PNG image
+  router.get('/sessions/:userId/qr/image', async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params
+      const { width, margin } = req.query
+      const session = sessionManager.getSession(userId)
+
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' })
+      }
+
+      if (!session.qrCode) {
+        return res.status(404).json({ error: 'QR code not available' })
+      }
+
+      const options = {
+        width: width ? parseInt(width as string) : 256,
+        margin: margin ? parseInt(margin as string) : 2
+      }
+
+      const imageBuffer = await QRCodeGenerator.generatePNG(session.qrCode, options)
+      
+      res.setHeader('Content-Type', 'image/png')
+      res.setHeader('Content-Disposition', `inline; filename="qr-${userId}.png"`)
+      res.send(imageBuffer)
+    } catch (error) {
+      logger.error({ error }, 'Failed to generate QR code image')
+      res.status(500).json({ error: 'Failed to generate QR code image' })
+    }
+  })
+
+  // Get QR code as SVG
+  router.get('/sessions/:userId/qr/svg', async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params
+      const { width, margin } = req.query
+      const session = sessionManager.getSession(userId)
+
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' })
+      }
+
+      if (!session.qrCode) {
+        return res.status(404).json({ error: 'QR code not available' })
+      }
+
+      const options = {
+        width: width ? parseInt(width as string) : 256,
+        margin: margin ? parseInt(margin as string) : 2
+      }
+
+      const svgString = await QRCodeGenerator.generateSVG(session.qrCode, options)
+      
+      res.setHeader('Content-Type', 'image/svg+xml')
+      res.setHeader('Content-Disposition', `inline; filename="qr-${userId}.svg"`)
+      res.send(svgString)
+    } catch (error) {
+      logger.error({ error }, 'Failed to generate QR code SVG')
+      res.status(500).json({ error: 'Failed to generate QR code SVG' })
+    }
+  })
+
+  // Get QR code as Data URL (base64)
+  router.get('/sessions/:userId/qr/dataurl', async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params
+      const { width, margin } = req.query
+      const session = sessionManager.getSession(userId)
+
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' })
+      }
+
+      if (!session.qrCode) {
+        return res.status(404).json({ error: 'QR code not available' })
+      }
+
+      const options = {
+        width: width ? parseInt(width as string) : 256,
+        margin: margin ? parseInt(margin as string) : 2
+      }
+
+      const dataURL = await QRCodeGenerator.generateDataURL(session.qrCode, options)
+      
+      res.json({ dataURL })
+    } catch (error) {
+      logger.error({ error }, 'Failed to generate QR code Data URL')
+      res.status(500).json({ error: 'Failed to generate QR code Data URL' })
     }
   })
 
