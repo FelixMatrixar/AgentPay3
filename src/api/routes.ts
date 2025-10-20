@@ -33,6 +33,26 @@ export function createRoutes(whatsappManager: WhatsAppManager, sessionManager: S
 
       const session = await whatsappManager.createConnection(userId, phoneNumber, usePairingCode)
       
+      // For new sessions, wait a bit for QR generation
+      if (!session.state.creds.registered && !session.qrCode) {
+        logger.info(`Waiting for QR generation for new session: ${userId}`)
+        
+        // Wait up to 5 seconds for QR code generation
+        let attempts = 0
+        const maxAttempts = 10 // 5 seconds total (500ms * 10)
+        
+        while (attempts < maxAttempts && !session.qrCode && !session.isConnected) {
+          await new Promise(resolve => setTimeout(resolve, 500))
+          attempts++
+        }
+        
+        if (session.qrCode) {
+          logger.info(`QR code generated for session: ${userId}`)
+        } else {
+          logger.warn(`QR code not generated within timeout for session: ${userId}`)
+        }
+      }
+      
       res.json({
         success: true,
         session: {
@@ -41,7 +61,8 @@ export function createRoutes(whatsappManager: WhatsAppManager, sessionManager: S
           isConnected: session.isConnected,
           qrCode: session.qrCode,
           pairingCode: session.pairingCode
-        }
+        },
+        message: session.qrCode ? 'Session created with QR code' : 'Session created - QR code will be available shortly'
       })
     } catch (error) {
       logger.error({ error }, 'Failed to create session')
@@ -164,6 +185,57 @@ export function createRoutes(whatsappManager: WhatsAppManager, sessionManager: S
     } catch (error) {
       logger.error({ error }, 'Failed to remove session')
       res.status(500).json({ error: 'Failed to remove session' })
+    }
+  })
+
+  // Trigger QR generation for session
+  router.post('/sessions/:userId/generate-qr', async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params
+      const session = sessionManager.getSession(userId)
+
+      if (!session) {
+        return res.status(404).json({ error: 'Session not found' })
+      }
+
+      if (session.isConnected) {
+        return res.status(400).json({ error: 'Session is already connected' })
+      }
+
+      if (session.qrCode) {
+        return res.json({ 
+          success: true, 
+          qrCode: session.qrCode,
+          message: 'QR code already available'
+        })
+      }
+
+      // Wait for QR generation
+      logger.info(`Triggering QR generation for session: ${userId}`)
+      
+      let attempts = 0
+      const maxAttempts = 20 // 10 seconds total (500ms * 20)
+      
+      while (attempts < maxAttempts && !session.qrCode && !session.isConnected) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        attempts++
+      }
+
+      if (session.qrCode) {
+        res.json({ 
+          success: true, 
+          qrCode: session.qrCode,
+          message: 'QR code generated successfully'
+        })
+      } else {
+        res.status(408).json({ 
+          error: 'QR code generation timeout',
+          message: 'QR code not available after waiting. Try creating a new session.'
+        })
+      }
+    } catch (error) {
+      logger.error({ error }, 'Failed to generate QR code')
+      res.status(500).json({ error: 'Failed to generate QR code' })
     }
   })
 
